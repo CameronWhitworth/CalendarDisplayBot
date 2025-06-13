@@ -18,17 +18,31 @@ class CalendarStyler:
         out_month_color = '#36393f'  # Slightly greyed out for out-of-month days
         out_month_font_color = '#b9bbbe'  # Lighter grey font
 
-        # Adjusted for a more square and taller look with extra space at the top
-        fig, ax = plt.subplots(figsize=(3, 2.4), facecolor=background_color)
-        ax.set_facecolor(background_color)
-        ax.set_axis_off()
+        # Create two axes: one for the title, one for the calendar
+        fig = plt.figure(figsize=(20, 15), facecolor=background_color)
+        gs = fig.add_gridspec(2, 1, height_ratios=[0.10, 0.82], hspace=0)
+        ax_title = fig.add_subplot(gs[0])
+        ax_cal = fig.add_subplot(gs[1])
+        ax_title.set_facecolor(background_color)
+        ax_cal.set_facecolor(background_color)
+        ax_title.set_axis_off()
+        ax_cal.set_axis_off()
+
+        # Draw the title in the top axes
+        ax_title.text(
+            0.5, 0.5, f"{calendar.month_name[month]} {year}",
+            ha='center', va='center',
+            fontsize=28, color=font_color, weight='bold',
+            transform=ax_title.transAxes
+        )
 
         # Prepare cellText for table (extract text from tuple)
         cell_text = []
         for row in table_data:
             cell_text.append([cell[0] if isinstance(cell, tuple) else cell for cell in row])
 
-        table = ax.table(cellText=cell_text, cellLoc='left', loc='center')
+        # Draw the table in the lower axes
+        table = ax_cal.table(cellText=cell_text, cellLoc='left', loc='center', bbox=[0, 0.05, 1, 0.95])
         table.auto_set_font_size(False)
         table.set_fontsize(13)
 
@@ -66,16 +80,8 @@ class CalendarStyler:
                     if "\n" in (cell_data[0] if isinstance(cell_data, tuple) else cell_data):
                         cell.set_facecolor(event_color)
 
-        # Month/year in the large padding area at the top
-        plt.figtext(
-            0.5, 0.95,  # X (centered), Y (very top)
-            f"{calendar.month_name[month]} {year}",
-            ha='center', va='top',
-            fontsize=24, color=font_color, weight='bold'
-        )
-
         # Set solid white background
         fig.patch.set_facecolor(background_color)
-        fig.patch.set_alpha(1.0)
+        fig.patch.set_alpha(0.0)
 
         return fig
