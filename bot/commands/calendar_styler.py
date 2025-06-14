@@ -70,24 +70,23 @@ class CalendarStyler:
             cell.set_width(1.0)
             
             cell_data = table_data[row][col]
-            is_out = is_out_of_month(cell_data)
-            cell_text_val = get_cell_text(cell_data)
 
             # Determine cell color
-            if is_out:
-                cell.set_facecolor(out_month_color)
-                cell.set_text_props(color=out_month_font_color, va='top')
-            else:
-                base_color = weekend_color if col >= 5 else cell_color
-                cell.set_facecolor(base_color)
+            base_color = weekend_color if col >= 5 else cell_color
+            cell.set_facecolor(base_color)
 
-                # Check for today's date
-                if is_current_month and cell_text_val.startswith(str(today.day)):
-                    cell.set_facecolor(today_color)
+            # Check for today's date
+            if (
+                is_current_month
+                and isinstance(cell_data, dict)
+                and cell_data["inout"] == "in"
+                and int(cell_data["day"]) == today.day
+            ):
+                cell.set_facecolor(today_color)
 
-                # Check for events
-                if "\n" in cell_text_val:
-                    cell.set_facecolor(event_color)
+            # Check for events
+            if isinstance(cell_data, dict) and cell_data["events"]:
+                cell.set_facecolor(event_color)
 
         # Manual text placement for day cells
         fig.canvas.draw()
@@ -96,8 +95,7 @@ class CalendarStyler:
                 continue
 
             cell_data = table_data[row][col]
-            text_val = get_cell_text(cell_data)
-            if not text_val:
+            if not cell_data:
                 continue
 
             # Hide original text
@@ -107,18 +105,35 @@ class CalendarStyler:
             bbox = cell.get_window_extent(ax_cal.figure.canvas.get_renderer())
             inv = ax_cal.transData.inverted()
             bbox_data = bbox.transformed(inv)
-            x = bbox_data.x0 + 0.06 * (bbox_data.x1 - bbox_data.x0)
-            y = bbox_data.y1 - 0.06 * (bbox_data.y1 - bbox_data.y0)
+            x_center = (bbox_data.x0 + bbox_data.x1) / 2
+            y_top = bbox_data.y1 - 0.08 * (bbox_data.y1 - bbox_data.y0)
 
-            # Place text
+            # Draw day number at top center
+            day_num = cell_data["day"]
             ax_cal.text(
-                x, y, text_val,
-                ha='left', va='top',
-                fontsize=13,
-                color=cell.get_text().get_color(),
-                weight=cell.get_text().get_weight(),
-                wrap=True
+                x_center, y_top, str(day_num),
+                ha='center', va='top',
+                fontsize=12, weight='bold',
+                color=cell.get_text().get_color()
             )
+
+            # Draw events below day number
+            line_spacing = 0.13 * (bbox_data.y1 - bbox_data.y0)  # Increased spacing
+            y_event = y_top - (line_spacing * 1.1)  # Start a bit lower below the day number
+            # Sort events by time (HH:MM)
+            sorted_events = sorted(
+                cell_data["events"],
+                key=lambda e: e[0] if e[0] else "99:99"
+            )
+            for time, event in sorted_events:
+                ax_cal.text(
+                    bbox_data.x0 + 0.06 * (bbox_data.x1 - bbox_data.x0), y_event,
+                    f"{time} {event}",
+                    ha='left', va='top',
+                    fontsize=11,
+                    color=cell.get_text().get_color()
+                )
+                y_event -= line_spacing  # Move down for each event
 
         # Set solid white background
         fig.patch.set_facecolor(background_color)

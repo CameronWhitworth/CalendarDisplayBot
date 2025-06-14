@@ -37,7 +37,9 @@ class CalendarCommand:
                     day = str(date.day)
                     if day not in day_event_map:
                         day_event_map[day] = []
-                    day_event_map[day].append(event.name[:15])
+                    event_time = event.start_time.strftime('%H:%M') if event.start_time else ""
+                    event_title = event.name[:15]
+                    day_event_map[day].append((event_time, event_title))
 
             # Generate calendar with out-of-month days
             cal = calendar.monthcalendar(year, month)
@@ -59,23 +61,15 @@ class CalendarCommand:
                         if week_idx == 0:
                             # Days from previous month
                             prev_day = prev_month_days - week[:col_idx][::-1].count(0) + col_idx + 1
-                            row.append((str(prev_day), 'out'))
+                            row.append({"day": str(prev_day), "inout": "out", "events": []})
                         else:
                             # Days from next month
-                            next_day = week[:col_idx].count(0) + sum(1 for d in week[:col_idx] if d != 0) + 1
-                            # Count how many next month days already filled in this row
                             next_day = col_idx - week[:col_idx].count(0) + 1
-                            row.append((str(next_day), 'out'))
+                            row.append({"day": str(next_day), "inout": "out", "events": []})
                     else:
-                        row.append((str(day), 'in'))
+                        events = day_event_map.get(str(day), [])
+                        row.append({"day": str(day), "inout": "in", "events": events})
                 table_data.append(row)
-
-            # Fill in events into calendar cells
-            for row_idx in range(1, len(table_data)):
-                for col_idx in range(7):
-                    day, inout = table_data[row_idx][col_idx]
-                    if inout == 'in' and day in day_event_map:
-                        table_data[row_idx][col_idx] = (day + "\n" + "\n".join(day_event_map[day]), 'in')
 
             # Style calendar using external class
             fig = CalendarStyler().style(table_data, month, year)
