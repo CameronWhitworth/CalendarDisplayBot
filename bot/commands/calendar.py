@@ -27,19 +27,18 @@ class CalendarCommand:
             # Fetch guild events
             events = await interaction.guild.fetch_scheduled_events()
 
-            # Organize events by day
+            # Organize events by full date string (YYYY-MM-DD)
             day_event_map = {}
             for event in events:
                 if not event.start_time:
                     continue
                 date = event.start_time.date()
-                if date.month == month and date.year == year:
-                    day = str(date.day)
-                    if day not in day_event_map:
-                        day_event_map[day] = []
-                    event_time = event.start_time.strftime('%H:%M') if event.start_time else ""
-                    event_title = event.name[:15]
-                    day_event_map[day].append((event_time, event_title))
+                date_str = date.strftime('%Y-%m-%d')
+                if date_str not in day_event_map:
+                    day_event_map[date_str] = []
+                event_time = event.start_time.strftime('%H:%M') if event.start_time else ""
+                event_title = event.name[:15]
+                day_event_map[date_str].append((event_time, event_title))
 
             # Generate calendar with out-of-month days
             cal = calendar.monthcalendar(year, month)
@@ -57,17 +56,29 @@ class CalendarCommand:
                 row = []
                 for col_idx, day in enumerate(week):
                     if day == 0:
-                        # Fill in previous or next month days
                         if week_idx == 0:
-                            # Days from previous month
-                            prev_day = prev_month_days - week[:col_idx][::-1].count(0) + col_idx + 1
-                            row.append({"day": str(prev_day), "inout": "out", "events": []})
+                            # Days from previous month (fill from the end of previous month)
+                            first_nonzero_idx = next((i for i, d in enumerate(week) if d != 0), 7)
+                            prev_day = prev_month_days - (first_nonzero_idx - col_idx - 1)
+                            # Build the correct date for previous month
+                            prev_date = datetime(prev_year, prev_month, prev_day).date()
+                            prev_date_str = prev_date.strftime('%Y-%m-%d')
+                            events = day_event_map.get(prev_date_str, [])
+                            row.append({"day": str(prev_day), "inout": "out", "events": events})
                         else:
-                            # Days from next month
-                            next_day = col_idx - week[:col_idx].count(0) + 1
-                            row.append({"day": str(next_day), "inout": "out", "events": []})
+                            # Days from next month (fill from 1 upwards)
+                            first_zero_idx = next((i for i, d in enumerate(week) if d == 0), 7)
+                            next_day = col_idx - first_zero_idx + 1
+                            # Build the correct date for next month
+                            next_date = datetime(next_year, next_month, next_day).date()
+                            next_date_str = next_date.strftime('%Y-%m-%d')
+                            events = day_event_map.get(next_date_str, [])
+                            row.append({"day": str(next_day), "inout": "out", "events": events})
                     else:
-                        events = day_event_map.get(str(day), [])
+                        # In-month day
+                        this_date = datetime(year, month, day).date()
+                        this_date_str = this_date.strftime('%Y-%m-%d')
+                        events = day_event_map.get(this_date_str, [])
                         row.append({"day": str(day), "inout": "in", "events": events})
                 table_data.append(row)
 

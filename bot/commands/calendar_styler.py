@@ -15,8 +15,8 @@ class CalendarStyler:
         today_color = '#7289da'
         event_color = '#99aab5'
         font_color = 'white'
-        out_month_color = '#36393f'  # Slightly greyed out for out-of-month days
-        out_month_font_color = '#b9bbbe'  # Lighter grey font
+        greyed_color = '#6c6f73'
+        dimmed_font_color = '#b0b3b8'
 
         # Create two axes: one for the title, one for the calendar
         fig = plt.figure(figsize=(20, 15), facecolor=background_color)
@@ -53,8 +53,8 @@ class CalendarStyler:
         # Style cells
         for (row, col), cell in table.get_celld().items():
             # Set common properties
-            cell.set_linewidth(1)
-            cell.set_edgecolor('#23272a')
+            cell.set_linewidth(0.2)
+            cell.set_edgecolor('#444950')
             cell.set_text_props(va='top', ha='left', wrap=True, color=font_color)
             cell.PAD = 0
 
@@ -83,10 +83,27 @@ class CalendarStyler:
                 and int(cell_data["day"]) == today.day
             ):
                 cell.set_facecolor(today_color)
+            # Grey out days before today in the current month
+            elif (
+                is_current_month
+                and isinstance(cell_data, dict)
+                and cell_data["inout"] == "in"
+                and int(cell_data["day"]) < today.day
+            ):
+                cell.set_facecolor(greyed_color)
+                cell.set_text_props(color=dimmed_font_color)
+            # Grey out only previous month out-of-month days
+            elif (
+                isinstance(cell_data, dict)
+                and cell_data["inout"] == "out"
+                and row == 1  # first week after header
+            ):
+                cell.set_facecolor(greyed_color)
+                cell.set_text_props(color=dimmed_font_color)
 
-            # Check for events
-            if isinstance(cell_data, dict) and cell_data["events"]:
-                cell.set_facecolor(event_color)
+            # Check for events (Highlights dayw with events, disabled for now)
+            # if isinstance(cell_data, dict) and cell_data["events"]:
+            #     cell.set_facecolor(event_color)
 
         # Manual text placement for day cells
         fig.canvas.draw()
