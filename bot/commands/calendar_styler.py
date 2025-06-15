@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import calendar
 import textwrap
+import matplotlib.transforms as mtransforms
 
 class CalendarStyler:
     def style(self, table_data, month, year):
@@ -20,7 +21,7 @@ class CalendarStyler:
         dimmed_font_color = '#b0b3b8'
 
         # Create two axes: one for the title, one for the calendar
-        fig = plt.figure(figsize=(20, 15), facecolor=background_color)
+        fig = plt.figure(figsize=(20,20), facecolor=background_color)
         gs = fig.add_gridspec(2, 1, height_ratios=[0.10, 0.82], hspace=0)
         ax_title = fig.add_subplot(gs[0])
         ax_cal = fig.add_subplot(gs[1])
@@ -60,14 +61,14 @@ class CalendarStyler:
             cell.PAD = 0
 
             if row == 0:  # Header row
-                cell.set_height(0.5)
+                cell.set_height(0.3)
                 cell.set_width(1.0)
                 cell.set_facecolor(header_color)
                 cell.set_text_props(weight='bold', ha='center', color=font_color)
                 continue
 
             # Regular cell properties
-            cell.set_height(1.1)
+            cell.set_height(1.0)
             cell.set_width(1.0)
             
             cell_data = table_data[row][col]
@@ -136,8 +137,15 @@ class CalendarStyler:
             )
 
             # Draw events below day number
-            line_spacing = 0.13 * (bbox_data.y1 - bbox_data.y0)  # Increased spacing
-            y_event = y_top - (line_spacing * 1.1)  # Start a bit lower below the day number
+            line_spacing_pts = 13  # Match font size in points
+            line_spacing_px = line_spacing_pts * fig.dpi / 72
+            # Convert pixel spacing to data coordinates (y-direction)
+            disp_to_data = ax_cal.transData.inverted().transform
+            y0_disp = ax_cal.transData.transform((0, y_top))
+            y1_disp = (y0_disp[0], y0_disp[1] - line_spacing_px)
+            y1_data = disp_to_data(y1_disp)[1]
+            line_spacing = y_top - y1_data
+            y_event = y_top - line_spacing
             # Sort events by time (HH:MM)
             sorted_events = sorted(
                 cell_data["events"],
