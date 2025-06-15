@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from datetime import datetime
 import calendar
+import textwrap
 
 class CalendarStyler:
     def style(self, table_data, month, year):
@@ -54,7 +55,7 @@ class CalendarStyler:
         for (row, col), cell in table.get_celld().items():
             # Set common properties
             cell.set_linewidth(0.2)
-            cell.set_edgecolor('#444950')
+            cell.set_edgecolor('#4f545c')
             cell.set_text_props(va='top', ha='left', wrap=True, color=font_color)
             cell.PAD = 0
 
@@ -143,14 +144,32 @@ class CalendarStyler:
                 key=lambda e: e[0] if e[0] else "99:99"
             )
             for time, event in sorted_events:
-                ax_cal.text(
-                    bbox_data.x0 + 0.06 * (bbox_data.x1 - bbox_data.x0), y_event,
-                    f"{time} {event}",
-                    ha='left', va='top',
-                    fontsize=11,
-                    color=cell.get_text().get_color()
-                )
-                y_event -= line_spacing  # Move down for each event
+                event_text = f"{time} {event}"
+                max_lines = 2
+                wrap_width = 25  # Adjust as needed
+
+                wrapped_lines = textwrap.wrap(event_text, width=wrap_width)
+                if len(wrapped_lines) > max_lines:
+                    # Join all lines after the first into one string, then cut to fit
+                    first_line = wrapped_lines[0]
+                    # Combine the rest and cut to fit the second line
+                    rest = ''.join(wrapped_lines[1:])
+                    # Leave space for "..."
+                    max_second_line_len = wrap_width - 3
+                    second_line = rest[:max_second_line_len] + "..."
+                    lines_to_draw = [first_line, second_line]
+                else:
+                    lines_to_draw = wrapped_lines
+
+                for line in lines_to_draw:
+                    ax_cal.text(
+                        bbox_data.x0 + 0.06 * (bbox_data.x1 - bbox_data.x0), y_event,
+                        line,
+                        ha='left', va='top',
+                        fontsize=11,
+                        color=cell.get_text().get_color()
+                    )
+                    y_event -= line_spacing
 
         # Set solid white background
         fig.patch.set_facecolor(background_color)

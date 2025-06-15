@@ -37,7 +37,7 @@ class CalendarCommand:
                 if date_str not in day_event_map:
                     day_event_map[date_str] = []
                 event_time = event.start_time.strftime('%H:%M') if event.start_time else ""
-                event_title = event.name[:15]
+                event_title = event.name
                 day_event_map[date_str].append((event_time, event_title))
 
             # Generate calendar with out-of-month days
